@@ -105,7 +105,6 @@ allowed to load `index.wasm` and `index.pck`, so you'd see a blank page or an er
 | A short freeze when music starts | Web builds decode each track the first time it plays. Scenes do this during their black screens (`SoundManager.prepare`). A new track played mid-scene should be prepared the same way first. |
 | Looks slightly different from the editor | Browsers use the **Compatibility** renderer (WebGL 2) instead of Forward+. Shaders can look a little different. |
 | "The AudioContext was not allowed to start" in the console | Normal: browsers block sound until the first click. The web build opens on a "click to begin" screen (MainMenu → `UI/AudioGate`); that click unlocks audio, then the menu and its music start. The warning still appears once at load and can be ignored. |
-| Progress (the after-the-ending menu) won't reset | It's saved in the browser's site data. Clear the site data for the page, or use a private window. |
 
 ---
 

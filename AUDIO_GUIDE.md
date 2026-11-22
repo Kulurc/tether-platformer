@@ -32,7 +32,7 @@ They loop (Import dock -> Loop is ticked on each). The original files are kept i
 | Where | Track | Set on | When |
 | --- | --- | --- | --- |
 | Main menu (first visit) | `harp.ogg` | MainMenu -> `menu_music` | From the start; fades out when the player clicks to start |
-| Main menu (after finishing the game) | `dusk_pig_farm_ambiance.ogg` | MainMenu -> After the ending -> `after_ending_music` | Same as above. Finishing is saved between sessions (`Scripts/game_progress.gd`); the menu also shows the dead tree |
+| Main menu (after finishing the game) | `dusk_pig_farm_ambiance.ogg` | MainMenu -> After the ending -> `after_ending_music` | Same as above. Finishing is remembered for the session only (`Scripts/game_progress.gd`): refreshing the page or relaunching resets it; the menu also shows the dead tree |
 | Level1_Visual | `harp.ogg` (-0.9 dB, 10% down) | TetherRig -> Audio -> `level_music` (in the level) | Silent through the black intro; fades in once the level is visible; fades out with the screen at the exit |
 | Level2_Visual | `next_to_you.ogg` (-0.9 dB, 10% down) | same | same |
 | Level3_Visual | `forest.ogg` | same | same, and cut dead when the cord is severed (TetherRig -> Sever -> `stop_music_on_sever`, ticked in this level) |

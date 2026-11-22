@@ -25,7 +25,7 @@ extends Node2D
 @export_range(-40.0, 12.0, 0.5) var menu_music_volume_db := -6.0
 
 @export_group("After the ending")
-## Once the player has reached the credits (saved between sessions), the menu plays this instead
+## Once the player has reached the credits (this session only - a page refresh resets it), the menu plays this instead
 ## and swaps the trees below. The credits play the same track, so it carries on seamlessly.
 @export var after_ending_music: AudioStream
 @export_range(-40.0, 12.0, 0.5) var after_ending_music_volume_db := 0.0
