@@ -6,7 +6,7 @@
 [ext_resource type="Script" path="res://Scripts/Visual/meadow_tree.gd" id="4_tree"]
 [ext_resource type="Texture2D" path="res://Art/UI/title_tether.png" id="5_title"]
 [ext_resource type="FontFile" path="res://Fonts/DM_Serif_Display/DMSerifDisplay-Regular.ttf" id="6_font"]
-[ext_resource type="AudioStream" path="res://Audio/Music/harp.ogg" id="9_music"]
+[ext_resource type="AudioStream" path="res://Audio/Music/vampires_piano.ogg" id="9_music"]
 [ext_resource type="AudioStream" path="res://Audio/Music/dusk_pig_farm_ambiance.ogg" id="10_dusk"]
 
 [node name="MainMenu" type="Node2D"]

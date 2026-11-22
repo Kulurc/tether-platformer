@@ -348,7 +348,7 @@ Part of every level's TetherRig. Every element is a node in that scene; `Root` i
 eye to see and edit the layout. Volume rows are the HBoxContainers named after an audio bus (`Master`, `Music`,
 `Sfx`), each with a `Slider` and a `Percent` label (add a row for a new bus the same way). **Resume** closes it;
 **Main Menu** fades out (with the level's music) and loads the menu set on the PauseMenu root (`menu_scene`,
-`menu_fade`). The menu stays the first-visit one (leafy tree + Harp) unless the game was finished before.
+`menu_fade`). The menu stays the first-visit one (leafy tree + vampires_piano) unless the game was finished before.
 
 ### Credits (`Scenes/Credits.tscn`, after Level3's exit)
 Black screen; `FirstLine` fades in, holds, fades out; a pause on black; `SecondLine` fades in and stays. A left mouse
