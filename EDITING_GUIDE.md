@@ -472,7 +472,7 @@ any font slot, the same as a `.ttf`.
 Neucha has no bold or italic file, so for `[b]` and `[i]` the bubble uses a thickened / slanted copy
 of whatever font the line uses. How strong this is: `BOLD_EMBOLDEN` and `ITALIC_SLANT` at the top of
 `Scripts/Dialogue/speech_bubble.gd`. To use a real italic file for a few words, use BBCode:
-`[font=res://Fonts/DM_Serif_Display/DMSerifDisplay-Italic.ttf]word[/font]`.
+`[font=res://Fonts/YourFont-Italic.ttf]word[/font]` (add the italic .ttf to `Fonts/` first).
 
 #### Not covered by these settings
 The F1 debug readout, the controls reminder, the pause menu and the editor-only labels still use

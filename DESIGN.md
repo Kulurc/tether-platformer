@@ -1,7 +1,6 @@
 # Tether - codependency sandbox
 
-Run `Scenes/prototype.tscn` (main scene). Primitive shapes only. The v1 single-character
-gym is archived in `_archive_v1/` (Godot ignores that folder).
+The game starts at `Scenes/MainMenu.tscn` (main scene). `Scenes/prototype.tscn` is the original test sandbox.
 
 | Input | Keyboard / mouse | Gamepad |
 |---|---|---|

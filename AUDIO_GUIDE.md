@@ -31,12 +31,13 @@ They loop (Import dock -> Loop is ticked on each). The original files are kept i
 
 | Where | Track | Set on | When |
 | --- | --- | --- | --- |
-| Main menu | `vampires_piano.ogg` | MainMenu -> `menu_music` | From the start; fades out when the player clicks to start |
+| Main menu (first visit) | `harp.ogg` | MainMenu -> `menu_music` | From the start; fades out when the player clicks to start |
+| Main menu (after finishing the game) | `dusk_pig_farm_ambiance.ogg` | MainMenu -> After the ending -> `after_ending_music` | Same as above. Finishing is saved between sessions (`Scripts/game_progress.gd`); the menu also shows the dead tree |
 | Level1_Visual | `harp.ogg` (-0.9 dB, 10% down) | TetherRig -> Audio -> `level_music` (in the level) | Silent through the black intro; fades in once the level is visible; fades out with the screen at the exit |
 | Level2_Visual | `next_to_you.ogg` (-0.9 dB, 10% down) | same | same |
 | Level3_Visual | `forest.ogg` | same | same, and cut dead when the cord is severed (TetherRig -> Sever -> `stop_music_on_sever`, ticked in this level) |
 | Phase III | `dark_ambience_loop.ogg` | `phase_3_inseparable.tres` -> Sound -> `loop_sound` (-16 dB, 5 s fade in) | Under the level music while in phase III; stops dead when the cord is cut |
-| Credits | `vampires_piano.ogg` | Credits -> `music` | From the start; keeps playing into the main menu (the menu sees the same track already playing and doesn't restart it) |
+| Credits | `dusk_pig_farm_ambiance.ogg` | Credits -> `music` | From the start; keeps playing into the main menu (the menu after the ending uses the same track, so it carries on without restarting) |
 
 - Level music never plays over a black screen: the TetherRig waits until the black cover is fully gone,
   then fades the track in over `level_audio_fade` (3 s).
@@ -141,7 +142,7 @@ All generated for this project (the recipe is `Audio/Sfx/_make_sfx.py.txt`). One
 | Cord snaps (fixed pitch) | `tether_snap.wav` | rig → Sever → `sever_sound` | 0 dB |
 | Holding Q (loop, rises as you hold) | `sever_strain_loop.wav` | rig → Tether → `sever_strain_sound` | -10 dB |
 | Reel / slack (loops) | `Audio/reel_loop.wav`, `slack_loop.wav` | rig → Tether | -13 / -15 dB |
-| Phase III heartbeat (loop) | `heartbeat_loop.wav` | `phase_3_inseparable.tres` → Sound → `loop_sound` | -6 dB, 3 s fade in |
+| Phase III ambience (loop) | `Audio/Music/dark_ambience_loop.ogg` | `phase_3_inseparable.tres` → Sound → `loop_sound` | -16 dB, 5 s fade in |
 
 - **Holding Q** also shakes the camera, building up to TetherRig → Sever → `sever_hold_shake` (px);
   the shake, the stretch sound and the heartbeat all stop the instant the cord snaps.

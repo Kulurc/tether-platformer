@@ -1,11 +1,13 @@
 extends Control
 ## Credits: black screen, the first line fades in and out, a pause on black, then the second
 ## line fades in and stays. A click / key / button / tap then returns to the main menu while the
-## music keeps playing (the menu uses the same track, so it carries on without restarting).
+## audio keeps playing (after the ending the menu uses the same track, so it carries on).
+## Reaching the credits marks the game as finished (GameProgress): from then on the main menu
+## shows the dead tree and plays the dusk ambience.
 ## The texts are the nodes FirstLine and SecondLine: move, restyle or retype them in the editor.
 
 @export_file("*.tscn") var menu_scene := "res://Scenes/MainMenu.tscn"
-@export var music: AudioStream = preload("res://Audio/Music/vampires_piano.ogg")
+@export var music: AudioStream = preload("res://Audio/Music/dusk_pig_farm_ambiance.ogg")
 @export_range(-40.0, 12.0, 0.5) var music_volume_db := 0.0
 ## Seconds the music takes to fade in when the credits begin.
 @export_range(0.0, 10.0, 0.1) var music_fade_in := 2.0
@@ -38,6 +40,7 @@ func _ready() -> void:
 	if sm and music:
 		sm.prepare(music)  # web: decode now, on the black screen
 		sm.play_music_fade(music, music_fade_in, music_volume_db)
+	GameProgress.mark_finished()
 	_first.modulate.a = 0.0
 	_second.modulate.a = 0.0
 	_run()
