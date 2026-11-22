@@ -15,4 +15,4 @@ A couple navigates their relationship together. As their relationship lengthens,
 
 A game by Kyle Asuncion.
 
-- Music: `harp.ogg`, `next_to_you.ogg`, `forest.ogg`, `Dark Ambience Loop" by Iwan Gabovitch` from opengameart.org
+- Music: `harp.ogg`, `next_to_you.ogg`, `forest.ogg`, `Dark Ambience Loop" by Iwan Gabovitch`, `vampires_piano` from opengameart.org
