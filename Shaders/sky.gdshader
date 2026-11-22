@@ -7,6 +7,7 @@ uniform vec4 sun_col : source_color;
 uniform vec2 sun = vec2(0.74, 0.36);
 uniform float sun_power = 1.0;
 uniform float rays = 0.35;
+uniform float ray_time = 0.0;  // slowly shifts the rays (LevelArt sets it; 0 = still)
 // overcast: 0 = clear sky (Level1), 1 = a full, heavy cloud deck
 uniform float overcast = 0.0;
 uniform vec4 cloud_light : source_color = vec4(0.78, 0.8, 0.81, 1.0);
@@ -34,7 +35,7 @@ void fragment(){
 	float r = length(d);
 	c += sun_col.rgb * sun_power * (exp(-r * 14.0) * 0.9 + exp(-r * 3.0) * 0.28);
 	float ang = atan(d.y, d.x);
-	float s = n1(ang * 16.0) * 0.6 + n1(ang * 41.0 + 3.0) * 0.4;
+	float s = n1(ang * 16.0 + ray_time * 0.6) * 0.6 + n1(ang * 41.0 + 3.0 - ray_time * 0.9) * 0.4;
 	s = smoothstep(0.5, 0.95, s);
 	c += sun_col.rgb * rays * s * exp(-r * 1.4) * smoothstep(-0.1, 0.5, d.y);
 	if (overcast > 0.0) {

@@ -25,6 +25,25 @@ Volumes everywhere are in **dB**:
   then click **Reimport**. WAVs used as the cord's reel/slack loops are looped automatically.
 - **Folders:** keep files under `Audio/`, e.g. `Audio/Music/`, `Audio/Ambience/`, `Audio/Sfx/`.
 
+## The game's music (`Audio/Music/`)
+All tracks were converted to OGG and loudness-matched to -18 LUFS, so at 0 dB they all sound equally loud.
+They loop (Import dock -> Loop is ticked on each). The original files are kept in your Downloads folder.
+
+| Where | Track | Set on | When |
+| --- | --- | --- | --- |
+| Main menu | `vampires_piano.ogg` | MainMenu -> `menu_music` | From the start; fades out when the player clicks to start |
+| Level1_Visual | `harp.ogg` (-0.9 dB, 10% down) | TetherRig -> Audio -> `level_music` (in the level) | Silent through the black intro; fades in once the level is visible; fades out with the screen at the exit |
+| Level2_Visual | `next_to_you.ogg` (-0.9 dB, 10% down) | same | same |
+| Level3_Visual | `forest.ogg` | same | same, and cut dead when the cord is severed (TetherRig -> Sever -> `stop_music_on_sever`, ticked in this level) |
+| Phase III | `dark_ambience_loop.ogg` | `phase_3_inseparable.tres` -> Sound -> `loop_sound` (-16 dB, 5 s fade in) | Under the level music while in phase III; stops dead when the cord is cut |
+| Credits | `vampires_piano.ogg` | Credits -> `music` | From the start; keeps playing into the main menu (the menu sees the same track already playing and doesn't restart it) |
+
+- Level music never plays over a black screen: the TetherRig waits until the black cover is fully gone,
+  then fades the track in over `level_audio_fade` (3 s).
+- To add a new track: drop it in `Audio/Music/`, tick **Loop** in the Import dock and Reimport. For matching
+  loudness, normalise it to about -18 LUFS first (any audio editor's "loudness normalize"), or adjust its
+  `*_volume_db` setting by ear.
+
 ## Music and ambience
 
 ### 1. Start them with the level
@@ -104,6 +123,30 @@ prefer signals.
 
 Severing is only possible in phase III. Each phase file has a `can_sever` setting under Cord, and
 only `phase_3_inseparable.tres` has it on.
+
+## Sounds already in the game (`Audio/Sfx/`)
+All generated for this project (the recipe is `Audio/Sfx/_make_sfx.py.txt`). One-shots go through
+`play_sound`, so each play has a slightly different pitch.
+
+| Sound | File | Where it's set | Volume |
+| --- | --- | --- | --- |
+| Footsteps (4, picked at random) | `Footsteps_Grass_Run_01..04.wav` (NOX Sound) | rig → Wisp/Ember → `footstep_sounds` | -14 dB, one step per 84 px walked (`step_distance`) |
+| Landing | `Footsteps_Grass_Jump_Land_01.wav` (NOX Sound) | rig → Wisp/Ember → `land_sound` | -9 dB |
+| Jump take-off | none (`jump_sound` empty) | rig → Wisp/Ember → `jump_sound` | - |
+| Switch characters | `swap_woosh.wav` | rig → `swap_sound` | -16 dB |
+| Hook onto a ring | `hook_klink.wav` | `tether_anchor.tscn` → `hook_sound` | -10 dB |
+| Rocket launch | `rocket_launch.wav` | `firework_key.tscn` → `launch_sound` | -6 dB |
+| Rocket impact / boulder breaks | `boulder_break.wav` | `boulder.tscn` → `break_sound` (the rocket's own `impact_sound` is empty) | +2 dB |
+| Branch starts to give / breaks | `branch_creak.wav`, `branch_snap.wav` | `crumble_branch.tscn` | -14.5 / -12 dB |
+| Cord snaps (fixed pitch) | `tether_snap.wav` | rig → Sever → `sever_sound` | 0 dB |
+| Holding Q (loop, rises as you hold) | `sever_strain_loop.wav` | rig → Tether → `sever_strain_sound` | -10 dB |
+| Reel / slack (loops) | `Audio/reel_loop.wav`, `slack_loop.wav` | rig → Tether | -13 / -15 dB |
+| Phase III heartbeat (loop) | `heartbeat_loop.wav` | `phase_3_inseparable.tres` → Sound → `loop_sound` | -6 dB, 3 s fade in |
+
+- **Holding Q** also shakes the camera, building up to TetherRig → Sever → `sever_hold_shake` (px);
+  the shake, the stretch sound and the heartbeat all stop the instant the cord snaps.
+- **Any phase can have its own loop**: open its `.tres` → Sound → `loop_sound` (fades in with the
+  phase, fades out if a later phase takes over, stops dead when the cord is cut).
 
 ## Sound effect slots (where each sound lives)
 

@@ -116,7 +116,7 @@ func _process(dt: float) -> void:
 		return
 	var parent := get_parent() as Character
 	if parent:
-		position = Vector2(0.0, -parent.half_h() - GAP)
+		position = Vector2(0.0, (parent.top_y() if parent.has_method("top_y") else -parent.half_h()) - GAP)
 	_panel.reset_size()  # shrink-to-fit once the wrapped label has settled its width
 	_panel.position = Vector2(-_panel.size.x * 0.5, -_panel.size.y - TAIL)
 

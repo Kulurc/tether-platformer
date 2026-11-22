@@ -1,4 +1,4 @@
-[gd_scene load_steps=81 format=4 uid="uid://pma3rris7bfn"]
+[gd_scene load_steps=82 format=4 uid="uid://pma3rris7bfn"]
 
 [ext_resource type="PackedScene" path="res://Scenes/Prefabs/level_art.tscn" id="1_1nmw6"]
 [ext_resource type="Script" uid="uid://46n84pblytya" path="res://Scripts/Level/block.gd" id="3_ryn0j"]
@@ -18,6 +18,7 @@
 [ext_resource type="Script" uid="uid://wa3ylqlg5il6" path="res://Scripts/Level/zone.gd" id="32_nmyp5"]
 [ext_resource type="PackedScene" path="res://Scenes/Prefabs/tether_anchor.tscn" id="33_fo78f"]
 [ext_resource type="PackedScene" path="res://Scenes/Prefabs/level_exit.tscn" id="35_5ewe6"]
+[ext_resource type="AudioStream" uid="uid://2y3cka7rj5a7" path="res://Audio/Music/next_to_you.ogg" id="m1_music"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_k83jr"]
 size = Vector2(40, 1800)
@@ -404,18 +405,6 @@ far_hills = Color(0.5411765, 0.5921569, 0.59607846, 1)
 mid_hills = Color(0.40392157, 0.47843137, 0.41960785, 1)
 meadow = Color(0.29803923, 0.39215687, 0.2901961, 1)
 reference_y = -600.0
-trunk_rows = null
-trunk_density = null
-trunk_far = null
-trunk_near = null
-fog = null
-ground_fog = null
-front_fog = null
-canopy = null
-canopy_color = null
-light_shafts = null
-shaft_color = null
-shaft_opacity = null
 flower_count = 150
 flower_opacity = 0.08
 flower_colors = Array[Color]([Color(0.8392157, 0.7607843, 0.41960785, 1), Color(0.8156863, 0.8117647, 0.76862746, 1), Color(0.7058824, 0.54509807, 0.5803922, 1)])
@@ -428,8 +417,6 @@ dust_color = Color(0.9019608, 0.9019608, 0.84705883, 1)
 foreground_trees = 2
 vignette = 0.36
 shadow_lift = Color(0, 0.01, 0.02, 1)
-desaturate = null
-desaturate_tint = null
 
 [node name="Level" type="Node2D" parent="."]
 
@@ -871,7 +858,6 @@ tree_seed = 11
 trunk_length = 100.0
 leaf_color = Color(0.10980392, 0.15294118, 0.105882354, 1)
 highlight_color = Color(0.28627452, 0.34901962, 0.23921569, 1)
-leaves = null
 blossoms = false
 
 [node name="EndTree" type="Node2D" parent="Decor"]
@@ -882,7 +868,6 @@ position = Vector2(17110, -1136)
 script = ExtResource("10_f55it")
 leaf_color = Color(0.10980392, 0.15294118, 0.105882354, 1)
 highlight_color = Color(0.28627452, 0.34901962, 0.23921569, 1)
-leaves = null
 blossoms = false
 
 [node name="Tree_A" type="Node2D" parent="Decor"]
@@ -896,7 +881,6 @@ trunk_length = 90.0
 branch_levels = 4
 leaf_color = Color(0.10980392, 0.15294118, 0.105882354, 1)
 highlight_color = Color(0.28627452, 0.34901962, 0.23921569, 1)
-leaves = null
 blossoms = false
 
 [node name="Tree_B" type="Node2D" parent="Decor"]
@@ -909,7 +893,6 @@ tree_seed = 7
 trunk_length = 120.0
 leaf_color = Color(0.10980392, 0.15294118, 0.105882354, 1)
 highlight_color = Color(0.28627452, 0.34901962, 0.23921569, 1)
-leaves = null
 blossoms = false
 
 [node name="Tree_C" type="Node2D" parent="Decor"]
@@ -923,7 +906,6 @@ trunk_length = 80.0
 branch_levels = 4
 leaf_color = Color(0.10980392, 0.15294118, 0.105882354, 1)
 highlight_color = Color(0.28627452, 0.34901962, 0.23921569, 1)
-leaves = null
 blossoms = false
 
 [node name="Tree_D" type="Node2D" parent="Decor"]
@@ -936,7 +918,6 @@ tree_seed = 9
 trunk_length = 130.0
 leaf_color = Color(0.10980392, 0.15294118, 0.105882354, 1)
 highlight_color = Color(0.28627452, 0.34901962, 0.23921569, 1)
-leaves = null
 blossoms = false
 
 [node name="Tree_E" type="Node2D" parent="Decor"]
@@ -950,7 +931,6 @@ trunk_length = 95.0
 branch_levels = 4
 leaf_color = Color(0.10980392, 0.15294118, 0.105882354, 1)
 highlight_color = Color(0.28627452, 0.34901962, 0.23921569, 1)
-leaves = null
 blossoms = false
 
 [node name="Tree_F" type="Node2D" parent="Decor"]
@@ -964,7 +944,6 @@ trunk_length = 85.0
 branch_levels = 4
 leaf_color = Color(0.10980392, 0.15294118, 0.105882354, 1)
 highlight_color = Color(0.28627452, 0.34901962, 0.23921569, 1)
-leaves = null
 blossoms = false
 
 [node name="Bounds" type="Node2D" parent="."]
@@ -1075,6 +1054,9 @@ steps = Array[ExtResource("12_6tqaa")]([SubResource("Resource_0way5"), SubResour
 size = Vector2(300, 160)
 
 [node name="TetherRig" parent="." instance=ExtResource("19_xxkjt")]
+level_music = ExtResource("m1_music")
+level_audio_fade = 3.0
+level_music_volume_db = -10.0
 start_black = true
 
 [node name="Ember" parent="TetherRig" index="1"]

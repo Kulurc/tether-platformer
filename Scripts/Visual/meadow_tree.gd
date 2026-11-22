@@ -41,6 +41,12 @@ extends Node2D
 	set(v):
 		leaves = v
 		queue_redraw()
+## Gentle sway in the wind, roughly radians of lean at the crown (0 = still). Done on the GPU by
+## Shaders/sway.gdshader: the tree is drawn once and only bent, so it costs almost nothing.
+@export_range(0.0, 0.3, 0.005) var sway := 0.0
+## Sway cycles per second.
+@export_range(0.01, 2.0, 0.01) var sway_speed := 0.2
+
 @export var blossoms := true:
 	set(v):
 		blossoms = v
@@ -55,6 +61,16 @@ func _ready() -> void:
 	FastDraw.use_on(self)  # circles below are FastDraw discs (batched: ~1 draw call, not thousands)
 	z_as_relative = false
 	z_index = -1  # behind the characters and the cord, in front of the backdrop
+	if sway > 0.0 and not Engine.is_editor_hint():
+		var m := ShaderMaterial.new()
+		m.shader = preload("res://Shaders/sway.gdshader")
+		var h := trunk_length * 2.6  # roughly the tree's height
+		m.set_shader_parameter("mode", 0)
+		m.set_shader_parameter("height", h)
+		m.set_shader_parameter("amount", sway * h)
+		m.set_shader_parameter("speed", sway_speed)
+		m.set_shader_parameter("phase", float(tree_seed) * 1.7)
+		material = m
 
 
 func _draw() -> void:

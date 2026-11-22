@@ -1,8 +1,11 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://Scripts/Level/anchor.gd" id="1_an"]
+[ext_resource type="AudioStream" path="res://Audio/Sfx/hook_klink.wav" id="2_klink"]
 
 [node name="TetherAnchor" type="Node2D"]
 script = ExtResource("1_an")
+hook_sound = ExtResource("2_klink")
+hook_volume_db = -10.0
 color = Color(1, 0.8156863, 0, 1)
 glow = true

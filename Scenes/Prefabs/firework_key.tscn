@@ -1,10 +1,13 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://Scripts/Level/key_item.gd" id="1_key"]
+[ext_resource type="AudioStream" path="res://Audio/Sfx/rocket_launch.wav" id="2_launch"]
 
 [node name="FireworkKey" type="Area2D"]
 collision_layer = 0
 collision_mask = 2
 script = ExtResource("1_key")
+launch_sound = ExtResource("2_launch")
+launch_volume_db = -6.0
 band_color = Color(1, 0.8156863, 0, 1)
 bob_height = 0.0

@@ -80,6 +80,14 @@ enum AIMode { MIRROR, FOLLOW }
 @export_range(0.0, 2.0, 0.01) var swap_delay := 0.0
 ## After swapping, your input still drives the OLD body this long.
 @export_range(0.0, 2.0, 0.01) var control_bleed := 0.0
+@export_group("Sound")
+## Loops for as long as this phase lasts (phase III: the heartbeat). Fades in when the phase
+## starts, fades out if another phase takes over, and stops dead when the cord is cut. Empty = none.
+@export var loop_sound: AudioStream
+@export_range(-40.0, 12.0, 0.5) var loop_volume_db := -6.0
+## Seconds to fade the loop in.
+@export_range(0.0, 10.0, 0.1) var loop_fade_in := 3.0
+
 @export_group("Look & feel")
 ## Strength of the separation filter (cold/vignette) and the warm closeness pulse.
 @export_range(0.0, 1.0, 0.05) var anxiety := 0.25

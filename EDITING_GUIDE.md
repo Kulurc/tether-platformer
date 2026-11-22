@@ -125,6 +125,25 @@ they're the same in every phase. Press **F5** in-game to reset the cord memory w
 
 ## 2. Character sprites and animations
 
+**Wisp and Ember already use the sketch-based art** (`Art/Characters/`). Their animations are
+`wisp_frames.tres` / `ember_frames.tres`, built from `*_spritesheet.png` (2x size, 160 px cells,
+24 fps; the `.json` next to each sheet lists the rows). They're assigned on the `Wisp` / `Ember`
+nodes in `Scenes/Prefabs/tether_rig.tscn`, so every level uses them:
+
+| Setting | Value | Why |
+|---|---|---|
+| `sprite_scale` | 0.5 | the sheets are drawn at 2x for sharpness |
+| `sprite_offset` | Wisp (0, -20), Ember (0, -17) | puts the art's feet on the bottom of the collision box |
+| `art_height` | Wisp 44, Ember 55 | the "you" marker, "..." and speech bubbles sit above the head/hair |
+| `swing_sprite_offset` | (0, 4) | swing frames are drawn around the hands: puts them on the cord |
+
+To go back to the plain shapes, clear `sprite_frames` on a node. To make your own art instead,
+follow the steps below (replace `sprite_frames` with your own SpriteFrames).
+
+Besides the names in the table, these are used when present: `rise` (going up after the `jump`
+take-off), `land` (just touched down), `slack` (paying out cord), `hook` (just hooked a ring).
+One-shot animations (loop off) hold their last frame until the next animation starts.
+
 Each character draws its placeholder shape until you give it art.
 
 1. Select `Wisp` (or `Ember`). In **Sprite (optional)**, click `sprite_frames` → **New SpriteFrames**, then click it to open the SpriteFrames panel at the bottom.
@@ -185,6 +204,8 @@ Use **F4** (slow-motion) to watch a tug frame by frame.
 - **Add a phase IV:** duplicate a `.tres`, edit it, add it as the 4th entry of the TetherRig's `phase_profiles`, and place a PHASE zone with `phase = 4`.
 - Phases only escalate; the cord's memory survives respawns.
 - **Severing (hold Q)** only works in phases with `can_sever` ticked (Cord group). Only phase III has it on.
+  How long it must be held: TetherRig -> Sever -> **`time_to_sever`** (seconds, default 2.5). The stretch sound,
+  camera shake and the ring around the body build up over that time.
   `TetherRig.sever_tether()` from a DialogueCall still cuts the cord in any phase.
 
 ### Debug keys (TetherRig → Debug → `debug_tools`; turn off before sharing a build)
@@ -304,6 +325,27 @@ follows the prefab).
   camera (jumps and drops to lower ground change nothing). Fall more than `fade_after_fall` px below where you last
   stood (into a pit) and they fade out over the next `fade_distance` px, then fade back in once you're standing.
 - `foreground_tree_see_through`: a foreground trunk fades to this opacity while either character is behind it.
+
+### Main menu (`Scenes/MainMenu.tscn`, the game's first scene)
+Everything is a node you can move in the editor - nothing is placed by code.
+- **Text**: `UI/Root/Title` (the TETHER image, `Art/UI/title_tether.png`), `UI/Root/Subtitle`, `UI/Root/ClickToStart`.
+  Drag them in the 2D view or set anchors/offsets in the Inspector; font, size and colour are in each Label's
+  Theme Overrides. They sit on their own CanvasLayer, so the screen grading doesn't darken them.
+- **Backdrop**: `LevelArt` (sky, sun, rays, hazy hills, motes - same settings as the levels), `Hill` (a MenuHill:
+  rise position/width/height, colours, grass) and `Tree` (a MeadowTree - move it, scale it, change its seed).
+- **Ambient motion** (all Inspector settings; 0 = still): LevelArt -> Ambient motion (`cloud_drift`, `grass_sway`,
+  `sun_breathe`, `ray_drift`) and `dust_count`/`dust_speed`; Tree -> `sway`, `sway_speed`; Hill -> `grass_sway`;
+  MainMenu -> `camera_drift`, `camera_drift_period`. Tree and hill-grass sway are done on the GPU
+  (`Shaders/sway.gdshader`), so they cost almost nothing. Any level can use the same settings.
+- **MainMenu root**: `first_scene` (where "click to start" goes), fade in/out times, the prompt's pulse, and optional
+  `menu_music` / `start_sound`. A click, key, controller button or tap starts the game.
+
+### Credits (`Scenes/Credits.tscn`, after Level3's exit)
+Black screen; `FirstLine` fades in, holds, fades out; a pause on black; `SecondLine` fades in and stays. A click,
+key, button or tap then goes back to the main menu. Both lines are Labels you can move and restyle in the editor.
+On the root: `menu_scene`, `music` (+ volume and fade in) and the **Timing** group (`start_delay`, `first_fade_in`,
+`first_hold`, `first_fade_out`, `black_gap`, `second_fade_in`, `leave_fade`). Level3_Visual's LevelExit has
+`next_scene = "Credits"`.
 
 ### Prefabs - edit one file, every copy follows
 Each copy in a level only stores its position (and anything you change on that copy, shown with a ↺ revert

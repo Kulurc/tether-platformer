@@ -80,8 +80,7 @@ func _draw() -> void:
 	# smooth shading: a fan from the centre, each edge vertex lit by which way it faces
 	var mid_col := rock_color.lerp(rock_dark, 0.45)
 	for i in pts.size() - 1:
-		var cols := PackedColorArray([mid_col, _shade_at(pts[i], c, light), _shade_at(pts[i + 1], c, light)])
-		draw_polygon(PackedVector2Array([c, pts[i], pts[i + 1]]), cols)
+		FastDraw.tri3(self, c, pts[i], pts[i + 1], mid_col, _shade_at(pts[i], c, light), _shade_at(pts[i + 1], c, light))
 	# a few broad chipped planes on the lit side (slightly lighter flats, no lines)
 	for k in 3:
 		var i0 := r.randi_range(14, 30)
@@ -91,10 +90,8 @@ func _draw() -> void:
 		for j in range(i0, i1 + 1):
 			poly.append(pts[j])
 		var tone := Color(rock_color.lightened(0.12), 0.10) if k != 1 else Color(rock_dark, 0.14)
-		var tc := PackedColorArray()
-		for j in poly.size():
-			tc.append(tone)
-		draw_polygon(poly, tc)
+		for j in range(1, poly.size() - 1):  # a fan from the inset point (same shape, batch-friendly)
+			FastDraw.tri(self, poly[0], poly[j], poly[j + 1], tone)
 	# a couple of soft weathering streaks (tone, not lines)
 	for k in 2:
 		var x := size.x * r.randf_range(0.3, 0.7)

@@ -1,7 +1,10 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://Scripts/Level/boulder.gd" id="1_bo"]
+[ext_resource type="AudioStream" path="res://Audio/Sfx/boulder_break.wav" id="2_boom"]
 
 [node name="Boulder" type="StaticBody2D"]
 script = ExtResource("1_bo")
+break_sound = ExtResource("2_boom")
+break_volume_db = 2.0
 size = Vector2(191, 200)

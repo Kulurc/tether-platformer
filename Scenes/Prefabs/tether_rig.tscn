@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3 uid="uid://jhe5tp6un702"]
+[gd_scene load_steps=23 format=3 uid="uid://jhe5tp6un702"]
 
 [ext_resource type="Script" uid="uid://brjxd18fi3" path="res://Scripts/main.gd" id="1_f5b3h"]
 [ext_resource type="Script" uid="uid://8n1acew1pt75" path="res://Scripts/phase_profile.gd" id="2_bavi7"]
@@ -12,6 +12,15 @@
 [ext_resource type="Script" path="res://Scripts/pause_menu.gd" id="10_41i60"]
 [ext_resource type="Script" uid="uid://dk8a3xqts8voe" path="res://Scripts/blackout.gd" id="11_blackout"]
 [ext_resource type="FontFile" uid="uid://eac8lqlrsbbs" path="res://Fonts/DM_Serif_Display/DMSerifDisplay-Regular.ttf" id="11_wusbm"]
+[ext_resource type="SpriteFrames" path="res://Art/Characters/wisp_frames.tres" id="12_wispf"]
+[ext_resource type="SpriteFrames" path="res://Art/Characters/ember_frames.tres" id="13_emberf"]
+[ext_resource type="AudioStream" path="res://Audio/Sfx/Footsteps_Grass_Run_01.wav" id="s1_step"]
+[ext_resource type="AudioStream" path="res://Audio/Sfx/Footsteps_Grass_Run_02.wav" id="s2_step"]
+[ext_resource type="AudioStream" path="res://Audio/Sfx/Footsteps_Grass_Run_03.wav" id="s3_step"]
+[ext_resource type="AudioStream" path="res://Audio/Sfx/Footsteps_Grass_Run_04.wav" id="s4_step"]
+[ext_resource type="AudioStream" path="res://Audio/Sfx/Footsteps_Grass_Jump_Land_01.wav" id="s5_land"]
+[ext_resource type="AudioStream" path="res://Audio/Sfx/swap_woosh.wav" id="s6_swap"]
+[ext_resource type="AudioStream" path="res://Audio/Sfx/tether_snap.wav" id="s7_snap"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_anxiety"]
 shader = ExtResource("8_jmdfj")
@@ -21,6 +30,10 @@ shader_parameter/pulse_time = 0.0
 
 [node name="TetherRig" type="Node2D"]
 script = ExtResource("1_f5b3h")
+swap_sound = ExtResource("s6_swap")
+swap_volume_db = -16.0
+sever_sound = ExtResource("s7_snap")
+sever_volume_db = 0.0
 phase_profiles = Array[ExtResource("2_bavi7")]([ExtResource("3_wusbm"), ExtResource("4_0c1mc"), ExtResource("5_cufi4")])
 debug_tools = false
 
@@ -33,6 +46,11 @@ break_time = 5.0
 texture_filter = 1
 position = Vector2(-60, -2)
 script = ExtResource("7_rr63j")
+footstep_sounds = Array[AudioStream]([ExtResource("s1_step"), ExtResource("s2_step"), ExtResource("s3_step"), ExtResource("s4_step")])
+footstep_volume_db = -14.0
+step_distance = 84.0
+land_sound = ExtResource("s5_land")
+land_volume_db = -9.0
 display_name = "Ember"
 shape = 1
 size = Vector2(36, 36)
@@ -40,10 +58,24 @@ color = Color(1, 0.74, 0.42, 1)
 speaker = 1
 bubble_tint = Color(1, 0.86, 0.66, 1)
 run_speed = 220.0
-sprite_faces_right = false
+sprite_frames = ExtResource("13_emberf")
+sprite_offset = Vector2(0, -17)
+sprite_scale = Vector2(0.5, 0.5)
+art_height = 55.0
+swing_sprite_offset = Vector2(0, 4)
 
 [node name="Wisp" type="CharacterBody2D" parent="."]
 script = ExtResource("7_rr63j")
+footstep_sounds = Array[AudioStream]([ExtResource("s1_step"), ExtResource("s2_step"), ExtResource("s3_step"), ExtResource("s4_step")])
+footstep_volume_db = -14.0
+step_distance = 84.0
+land_sound = ExtResource("s5_land")
+land_volume_db = -9.0
+sprite_frames = ExtResource("12_wispf")
+sprite_offset = Vector2(0, -20)
+sprite_scale = Vector2(0.5, 0.5)
+art_height = 44.0
+swing_sprite_offset = Vector2(0, 4)
 
 [node name="Camera" type="Camera2D" parent="."]
 

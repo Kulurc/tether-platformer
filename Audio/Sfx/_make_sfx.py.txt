@@ -1,0 +1,340 @@
+"""Procedural SFX for Tether. Everything is synthesized here (no samples).
+Writes 44.1 kHz mono 16-bit WAVs into the folder given as argv[1]."""
+import sys, os, wave
+import numpy as np
+from scipy import signal
+
+SR = 44100
+OUT = sys.argv[1]
+os.makedirs(OUT, exist_ok=True)
+
+
+def t_axis(dur):
+    return np.arange(int(dur * SR)) / SR
+
+
+def noise(dur, rng):
+    return rng.standard_normal(int(dur * SR))
+
+
+def bp(x, lo, hi, order=2):
+    sos = signal.butter(order, [lo, hi], btype="bandpass", fs=SR, output="sos")
+    return signal.sosfilt(sos, x)
+
+
+def lp(x, f, order=2):
+    return signal.sosfilt(signal.butter(order, f, btype="lowpass", fs=SR, output="sos"), x)
+
+
+def hp(x, f, order=2):
+    return signal.sosfilt(signal.butter(order, f, btype="highpass", fs=SR, output="sos"), x)
+
+
+def env(n, a, d, shape=1.0):
+    """attack (s), then exponential-ish decay over d seconds"""
+    t = np.arange(n) / SR
+    e = np.where(t < a, t / max(a, 1e-6), np.exp(-(t - a) / max(d, 1e-6) * 4.0) ** shape)
+    return e
+
+
+def sweep_bp(x, f0, f1, q=2.0, steps=48):
+    """band-pass whose centre glides from f0 to f1 (block-wise, crossfaded)"""
+    out = np.zeros_like(x)
+    n = len(x)
+    blk = max(n // steps, 64)
+    win = np.hanning(blk * 2)
+    for i in range(0, n, blk):
+        c = f0 * (f1 / f0) ** (i / n)
+        lo, hi = c / (1 + 1 / q), c * (1 + 1 / q)
+        seg = x[max(0, i - blk // 2): i + blk + blk // 2]
+        y = bp(seg, max(lo, 30), min(hi, SR / 2 - 100))
+        a = i - max(0, i - blk // 2)
+        piece = y[a: a + blk]
+        out[i: i + len(piece)] += piece
+    return out
+
+
+def reverb(x, size=0.6, mix=0.18, damp=4000, seed=7):
+    rng = np.random.default_rng(seed)
+    n = int(size * SR)
+    ir = rng.standard_normal(n) * np.exp(-np.arange(n) / SR / size * 5.0)
+    ir = lp(ir, damp)
+    ir[: int(0.012 * SR)] = 0
+    ir /= np.sqrt(np.sum(ir ** 2)) + 1e-9
+    wet = signal.fftconvolve(x, ir)
+    wet = np.concatenate([wet, np.zeros(max(0, len(x) + n - len(wet)))])[: len(x) + n]
+    dry = np.concatenate([x, np.zeros(n)])
+    return dry * (1 - mix) + wet * mix * 1.6
+
+
+def fade(x, fin=0.002, fout=0.02):
+    x = x.copy()
+    a, b = int(fin * SR), int(fout * SR)
+    if a: x[:a] *= np.linspace(0, 1, a)
+    if b: x[-b:] *= np.linspace(1, 0, b)
+    return x
+
+
+def trim(x, thresh=1e-4):
+    idx = np.where(np.abs(x) > thresh * np.max(np.abs(x)))[0]
+    return x[: idx[-1] + 1] if len(idx) else x
+
+
+def save(name, x, peak_db=-1.0, loop=False):
+    x = np.asarray(x, dtype=np.float64)
+    if not loop:
+        x = fade(trim(x), 0.001, 0.03)
+    x = x / (np.max(np.abs(x)) + 1e-12) * 10 ** (peak_db / 20)
+    data = (np.clip(x, -1, 1) * 32767).astype(np.int16)
+    with wave.open(os.path.join(OUT, name + ".wav"), "wb") as w:
+        w.setnchannels(1); w.setsampwidth(2); w.setframerate(SR)
+        w.writeframes(data.tobytes())
+    print(f"{name:22s} {len(x)/SR:5.2f}s")
+
+
+def thump(dur, f0, f1, decay, rng=None):
+    t = t_axis(dur)
+    f = f0 * (f1 / f0) ** (t / dur)
+    ph = 2 * np.pi * np.cumsum(f) / SR
+    return np.sin(ph) * env(len(t), 0.003, decay)
+
+
+def grains(dur, count, lo, hi, gdur, rng, decay_over=None, amp_jitter=0.6):
+    """sparse little noise grains (grass blades, gravel, crackle)"""
+    x = np.zeros(int(dur * SR))
+    for _ in range(count):
+        t0 = rng.random() ** (1.6 if decay_over else 1.0) * (decay_over or dur)
+        g = int(gdur * SR * rng.uniform(0.5, 1.5))
+        i = int(t0 * SR)
+        if i + g >= len(x): continue
+        b = bp(rng.standard_normal(g), lo * rng.uniform(0.8, 1.2), hi * rng.uniform(0.85, 1.1))
+        a = (1 - amp_jitter + amp_jitter * rng.random())
+        if decay_over: a *= np.exp(-t0 / decay_over * 2.5)
+        x[i: i + g] += b * np.hanning(g) * a
+    return x
+
+
+# ------------------------------------------------------------------ character
+for k in range(4):  # grass footsteps: a soft crunch of blades + a muffled heel
+    rng = np.random.default_rng(100 + k)
+    d = 0.2
+    rust = grains(d, 28, 1800, 6500, 0.012, rng, decay_over=0.09)
+    rust += bp(noise(d, rng), 2500, 7000) * env(int(d * SR), 0.004, 0.06) * 0.25
+    heel = lp(noise(d, rng), 600) * env(int(d * SR), 0.002, 0.03) * 0.5 + thump(d, 140, 90, 0.035) * 0.35
+    save(f"step_grass_{k+1}", reverb(lp(rust, 6500) + heel * 1.3, 0.25, 0.08), -3)
+
+rng = np.random.default_rng(3)
+d = 0.32  # jump: a short airy push-off with a brush of grass
+x = sweep_bp(noise(d, rng), 380, 1700, q=1.6) * env(int(d * SR), 0.03, 0.16)
+x += grains(d, 14, 2000, 6000, 0.01, rng, decay_over=0.05) * 0.5
+save("jump", reverb(x, 0.3, 0.1), -4)
+
+rng = np.random.default_rng(4)
+d = 0.4  # land: a padded thud into grass
+x = thump(d, 110, 55, 0.09) * 0.9 + lp(noise(d, rng), 450) * env(int(d * SR), 0.002, 0.06) * 0.5
+x += grains(d, 34, 1800, 6500, 0.012, rng, decay_over=0.12) * 0.7
+save("land", reverb(lp(x, 6000), 0.3, 0.1), -3)
+
+d = 1.4  # hook: a soft glassy ping, like touching a small bell
+t = t_axis(d)
+x = np.zeros_like(t)
+for f, a, dc in [(1174.7, 1.0, 0.75), (1174.7 * 2.0, 0.22, 0.35), (1174.7 * 2.76, 0.12, 0.25), (1174.7 * 0.5, 0.18, 0.6)]:
+    x += a * np.sin(2 * np.pi * f * t + 0.3) * env(len(t), 0.004, dc)
+x *= 1 + 0.08 * np.sin(2 * np.pi * 5.5 * t)
+save("hook_ping", reverb(x, 1.0, 0.25, 6000), -6)
+
+d = 0.6  # unhook: a lower, shorter release tick
+t = t_axis(d)
+x = np.sin(2 * np.pi * 784 * t) * env(len(t), 0.003, 0.18) + 0.2 * np.sin(2 * np.pi * 1568 * t) * env(len(t), 0.002, 0.08)
+save("unhook_tick", reverb(x, 0.6, 0.2, 5000), -8)
+
+rng = np.random.default_rng(5)
+d = 0.5  # swap: a soft woosh past the ear
+x = sweep_bp(noise(d, rng), 260, 1100, q=1.4)
+e = np.sin(np.pi * np.clip(t_axis(d) / d, 0, 1)) ** 2
+x = x * e
+x += 0.15 * np.sin(2 * np.pi * np.cumsum(220 * (1.6 ** (t_axis(d) / d))) / SR) * e  # faint tonal swish
+save("swap_woosh", reverb(x, 0.4, 0.15), -5)
+
+# ------------------------------------------------------------------ fireworks / boulder
+rng = np.random.default_rng(6)
+d = 0.95  # rocket launch: fuse fizz, then a rising whistle-whoosh flying away
+t = t_axis(d)
+fizz = hp(grains(d, 260, 2500, 9000, 0.004, rng), 2000) * np.clip(1 - t / 0.35, 0, 1) * 0.6
+whoosh = sweep_bp(noise(d, rng), 500, 3200, q=2.2) * np.clip((t - 0.08) / 0.1, 0, 1) * np.exp(-np.clip(t - 0.45, 0, None) * 4)
+fw = 700 * (3.2 ** (t / d))
+whistle = 0.18 * np.sin(2 * np.pi * np.cumsum(fw) / SR) * np.clip((t - 0.1) / 0.15, 0, 1) * np.exp(-np.clip(t - 0.5, 0, None) * 5)
+save("rocket_launch", reverb(fizz + whoosh + whistle, 0.6, 0.18), -3)
+
+rng = np.random.default_rng(7)
+d = 1.8  # rocket hit: a bright pop and a shower of crackles
+pop = hp(noise(0.02, rng), 800) * env(int(0.02 * SR), 0.0005, 0.006)
+pop = np.concatenate([pop, np.zeros(int(d * SR) - len(pop))])
+x = pop * 1.0 + thump(d, 160, 60, 0.12) * 0.7
+x += hp(grains(d, 420, 2500, 9000, 0.003, rng, decay_over=1.1, amp_jitter=0.9), 1800) * 0.9
+x += grains(d, 60, 600, 2000, 0.01, rng, decay_over=0.6) * 0.4
+save("rocket_hit", reverb(lp(x, 8500), 1.4, 0.3, 5000), -2)
+
+rng = np.random.default_rng(8)
+d = 2.4  # boulder: deep crack-boom, then rubble tumbling and settling
+x = thump(d, 70, 32, 0.5) * 1.0 + lp(noise(d, rng), 260) * env(int(d * SR), 0.004, 0.45) * 0.9
+crack = hp(noise(0.05, rng), 1200) * env(int(0.05 * SR), 0.0005, 0.015)
+x[: len(crack)] += crack * 0.8
+x += grains(d, 220, 700, 3200, 0.018, rng, decay_over=1.4) * 1.1        # gravel
+x += lp(grains(d, 40, 120, 600, 0.05, rng, decay_over=1.0), 900) * 1.2  # bigger chunks thudding
+save("boulder_break", reverb(x, 1.6, 0.3, 3500), -1.5)
+
+# ------------------------------------------------------------------ crumbling branch
+rng = np.random.default_rng(9)
+d = 0.75  # creak: stick-slip wood friction, soft
+t = t_axis(d)
+rate = 38 + 30 * np.sin(np.pi * t / d) + 6 * np.sin(2 * np.pi * 3 * t)
+ph = np.cumsum(rate) / SR
+pulses = (np.diff(np.floor(ph), prepend=0) > 0).astype(float)
+pulses *= 0.6 + 0.4 * rng.random(len(pulses))
+body = bp(pulses, 380, 520, 2) * 1.0 + bp(pulses, 1100, 1500, 2) * 0.5 + bp(pulses, 2400, 2900, 2) * 0.2
+x = body * np.sin(np.pi * np.clip(t / d, 0, 1)) ** 1.5
+save("branch_creak", reverb(x, 0.4, 0.12), -6)
+
+rng = np.random.default_rng(10)
+d = 0.6  # snap: a dry crack and a few splinters, kept short and light
+x = np.zeros(int(d * SR))
+crack = hp(noise(0.012, rng), 1500) * env(int(0.012 * SR), 0.0003, 0.004)
+x[: len(crack)] += crack
+x += thump(d, 240, 150, 0.05) * 0.5
+for _ in range(7):
+    i = int(rng.uniform(0.01, 0.09) * SR)
+    g = int(0.006 * SR)
+    x[i: i + g] += hp(rng.standard_normal(g), 1800) * np.hanning(g) * rng.uniform(0.2, 0.6)
+x += grains(d, 26, 1500, 5000, 0.01, rng, decay_over=0.25) * 0.35  # bark bits and leaves
+save("branch_snap", reverb(lp(x, 5000) + thump(d, 200, 130, 0.07) * 0.35, 0.4, 0.12), -4)
+
+# ------------------------------------------------------------------ the cord
+rng = np.random.default_rng(11)
+d = 3.2  # sever snap: whip crack, heavy low hit, the cord's twang recoiling, a long tail
+t = t_axis(d)
+crack = hp(noise(0.006, rng), 2500) * env(int(0.006 * SR), 0.0002, 0.0015)
+x = np.zeros_like(t)
+x[: len(crack)] += crack * 1.3
+x += thump(d, 95, 30, 0.9) * 1.2
+x += lp(noise(d, rng), 180) * env(len(t), 0.002, 0.7) * 0.8
+tw = np.zeros_like(t)
+for h, a in [(1, 1.0), (2, 0.5), (3, 0.3), (5, 0.12)]:
+    f = 146.8 * h * (1 - 0.18 * (1 - np.exp(-t * 6)))  # pitch sags as the cord recoils
+    tw += a * np.sin(2 * np.pi * np.cumsum(f) / SR)
+x += tw * env(len(t), 0.001, 0.55) * 0.55
+x += hp(grains(d, 80, 2000, 7000, 0.004, rng, decay_over=0.25), 1500) * 0.5  # fibres tearing
+y = np.tanh(x * 1.4)
+save("tether_snap", reverb(y, 2.2, 0.32, 3000), -0.5)
+
+
+def make_loop(x, xfade):
+    """seamless loop: crossfade the tail into the head"""
+    n = int(xfade * SR)
+    head, body, tail = x[:n], x[n:-n], x[-n:]
+    w = np.linspace(0, 1, n)
+    return np.concatenate([body, tail * (1 - w) + head * w])
+
+
+rng = np.random.default_rng(12)
+d = 2.6  # sever strain (loop): rope fibres stretching and creaking under load
+t = t_axis(d)
+rate = 55 + 25 * np.sin(2 * np.pi * 0.7 * t)
+ph = np.cumsum(rate) / SR
+pulses = (np.diff(np.floor(ph), prepend=0) > 0).astype(float) * (0.5 + 0.5 * rng.random(len(t)))
+creak = bp(pulses, 260, 380) * 1.0 + bp(pulses, 800, 1100) * 0.5
+groan = lp(signal.sawtooth(2 * np.pi * np.cumsum(62 + 3 * np.sin(2 * np.pi * 0.9 * t)) / SR), 300) * 0.25
+fibres = hp(grains(d, 180, 2500, 7000, 0.003, rng), 2000) * 0.35
+x = creak + groan + fibres
+save("sever_strain_loop", make_loop(x, 0.3), -4, loop=True)
+
+rng = np.random.default_rng(13)
+bpm = 118.0  # phase III heartbeat (loop): fast, heavy, close - with a low uneasy drone
+beat = 60.0 / bpm
+n = int(round(4 * beat * SR))
+t = np.arange(n) / SR
+x = np.zeros(n + int(0.4 * SR))  # tails past the end wrap to the start
+for b in range(4):
+    for off, f0, a, dc in [(0.0, 62, 1.0, 0.11), (0.26, 74, 0.75, 0.09)]:
+        i = int((b * beat + off) * SR)
+        m = int(0.35 * SR)
+        tt = np.arange(m) / SR
+        s = np.sin(2 * np.pi * np.cumsum(f0 * (0.75 + 0.25 * np.exp(-tt * 20))) / SR) * env(m, 0.004, dc)
+        s += lp(rng.standard_normal(m), 160) * env(m, 0.003, dc * 0.6) * 0.35
+        seg = s
+        x[i: i + len(seg)] += a * seg
+x[: len(x) - n] += x[n:]
+x = x[:n]
+loop_len = n / SR
+drone_f = round(41 * loop_len) / loop_len           # whole cycles per loop: seamless
+drone = (np.sin(2 * np.pi * drone_f * t) + 0.5 * np.sin(2 * np.pi * drone_f * 1.5 * t + 1)) * 0.12
+drone *= 0.8 + 0.2 * np.sin(2 * np.pi * t / loop_len)
+whine_f = round(5200 * loop_len) / loop_len
+whine = np.sin(2 * np.pi * whine_f * t) * 0.006 * (0.6 + 0.4 * np.sin(2 * np.pi * 2 * t / loop_len))
+y = np.tanh((x + drone) * 1.8) + whine
+save("heartbeat_loop", y, -2, loop=True)
+
+
+# ================================================================== round 2 (feedback)
+# Footsteps: soft, damped grass - a muffled swish and a gentle pad, no crunchy clicks.
+for k in range(4):
+    rng = np.random.default_rng(200 + k)
+    d = 0.24
+    n = int(d * SR)
+    t = np.arange(n) / SR
+    swish = lp(bp(noise(d, rng), 500, 2400), 2000) * (np.clip(t / 0.018, 0, 1) * np.exp(-np.clip(t - 0.018, 0, None) / 0.045))
+    blades = lp(grains(d, 10, 900, 2600, 0.02, rng, decay_over=0.07), 2200) * 0.35
+    pad = lp(noise(d, rng), 280) * (np.clip(t / 0.006, 0, 1) * np.exp(-t / 0.03)) * 0.6 + thump(d, 95, 70, 0.04) * 0.25
+    save(f"step_grass_{k+1}", reverb(swish + blades + pad, 0.2, 0.06, 2500), -3)
+
+# Hook: a soft metal "klink" - two tiny touches of small metal parts, damped.
+rng = np.random.default_rng(21)
+d = 0.5
+t = t_axis(d)
+x = np.zeros_like(t)
+for start, amp in [(0.0, 1.0), (0.028, 0.55)]:
+    i = int(start * SR)
+    tt = t[: len(t) - i]
+    s = np.zeros_like(tt)
+    for f, a, dc in [(2350, 1.0, 0.09), (3610, 0.55, 0.06), (5230, 0.3, 0.035), (1480, 0.25, 0.05)]:
+        s += a * np.sin(2 * np.pi * f * rng.uniform(0.985, 1.015) * tt) * env(len(tt), 0.0015, dc)
+    s += hp(rng.standard_normal(len(tt)), 3000) * env(len(tt), 0.0005, 0.004) * 0.25  # the touch
+    x[i:] += s * amp
+save("hook_ping", reverb(lp(x, 7000), 0.5, 0.15, 6000), -8)
+
+# Swap: much smaller - a quick, quiet breath of air.
+rng = np.random.default_rng(22)
+d = 0.2
+t = t_axis(d)
+e = np.sin(np.pi * np.clip(t / d, 0, 1)) ** 2
+x = lp(sweep_bp(noise(d, rng), 700, 1600, q=1.3), 3000) * e
+save("swap_woosh", reverb(x, 0.25, 0.1), -10)
+
+# Boulder: one quick boom, then a long low rumble dragging out.
+rng = np.random.default_rng(23)
+d = 2.6
+t = t_axis(d)
+n = len(t)
+boom = thump(d, 80, 38, 0.16) * 1.0 + lp(noise(d, rng), 220) * env(n, 0.003, 0.12) * 0.8
+rumble = lp(noise(d, rng), 120) * (np.clip(t / 0.05, 0, 1) * np.exp(-t / 0.9)) * 0.55
+rumble *= 1 + 0.25 * np.sin(2 * np.pi * 3.1 * t) * np.sin(2 * np.pi * 0.7 * t)
+save("boulder_break", reverb(boom + rumble, 1.8, 0.25, 1800), -1.5)
+
+# Branch giving way: small dry crackles (twigs and fibres), low-mid pitch, building up.
+rng = np.random.default_rng(24)
+d = 0.8
+t = t_axis(d)
+x = np.zeros_like(t)
+for _ in range(90):
+    t0 = d * (rng.random() ** 0.6)           # denser towards the end, as it's about to go
+    g = int(rng.uniform(0.002, 0.007) * SR)
+    i = int(t0 * SR)
+    if i + g >= len(x): continue
+    c = rng.uniform(500, 1500)
+    x[i: i + g] += bp(rng.standard_normal(g), c * 0.7, c * 1.4) * np.hanning(g) * rng.uniform(0.3, 1.0)
+for _ in range(6):                            # a few deeper fibre pops
+    i = int(rng.uniform(0.1, 0.75) * SR)
+    seg = thump(0.06, 320, 200, 0.02) * rng.uniform(0.3, 0.6)
+    x[i: i + len(seg)] += seg[: len(x) - i]
+x = lp(x, 2600) * np.clip(t / 0.2, 0.25, 1.0)
+save("branch_creak", reverb(x, 0.35, 0.1), -6)

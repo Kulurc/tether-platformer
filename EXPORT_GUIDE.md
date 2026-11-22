@@ -28,7 +28,7 @@ Exporting writes these files into `CraveFX_Assessment\Builds\Web\`:
 |---|---|
 | `index.html` | The page you open. It loads everything below. |
 | `index.wasm` | The Godot engine compiled for browsers (~38 MB). It only changes if you change Godot version. |
-| `index.pck` | **Your game**: scenes, scripts, fonts, audio (~370 KB). This is what changes when you edit the game. |
+| `index.pck` | **Your game**: scenes, scripts, fonts, audio (~11 MB: includes the music, character sprite sheets and sound effects). This is what changes when you edit the game. |
 | `index.js` | Starts the engine. |
 | `index.audio.worklet.js`, `index.audio.position.worklet.js` | Audio playback. |
 | `index.png`, `index.icon.png`, `index.apple-touch-icon.png` | Loading-screen logo and icons. |
@@ -58,7 +58,7 @@ All of these must stay together in the same folder.
 ### Before every export: checklist
 
 - [ ] **Main scene.** Project → Project Settings → Application → Run → **Main Scene** is the level the game should
-      start in (currently `Scenes/Level1_Visual.tscn`).
+      start in (currently `Scenes/MainMenu.tscn`, which starts `Level1_Visual`).
 - [ ] **Debug ticks on DialogueTriggers.** Any trigger with `debug` ticked is switched **off** in the build
       (drawn red with "DEBUG: OFF" in the editor). The Level1_Visual **Intro** trigger is ticked right now, so the
       intro is skipped. Untick it to play the intro.

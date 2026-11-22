@@ -139,3 +139,12 @@ func _looped(s: AudioStream) -> AudioStream:
 		w.loop_end = int(w.get_length() * w.mix_rate)
 		return w
 	return s
+
+## Web builds (no threads) play audio as "samples": each track is fully decoded the first time
+## it plays, which freezes the game for a moment if that happens mid-scene. Call this while the
+## screen is still black (scene start) so the decode happens then. Does nothing outside the web.
+func prepare(sound: AudioStream) -> void:
+	if sound == null or not OS.has_feature("web"):
+		return
+	if sound.can_be_sampled() and not AudioServer.is_stream_registered_as_sample(sound):
+		AudioServer.register_stream_as_sample(sound)

@@ -1,0 +1,77 @@
+{
+  "animations": {
+    "dragged": {
+      "first_row": 15,
+      "frames": 16,
+      "loop": true
+    },
+    "fall": {
+      "first_row": 6,
+      "frames": 8,
+      "loop": true
+    },
+    "hook": {
+      "first_row": 12,
+      "frames": 12,
+      "loop": false
+    },
+    "idle": {
+      "first_row": 0,
+      "frames": 48,
+      "loop": true
+    },
+    "jump": {
+      "first_row": 4,
+      "frames": 6,
+      "loop": false
+    },
+    "land": {
+      "first_row": 7,
+      "frames": 6,
+      "loop": false
+    },
+    "left_behind": {
+      "first_row": 17,
+      "frames": 48,
+      "loop": true
+    },
+    "reel": {
+      "first_row": 8,
+      "frames": 24,
+      "loop": true
+    },
+    "rise": {
+      "first_row": 5,
+      "frames": 8,
+      "loop": true
+    },
+    "run": {
+      "first_row": 3,
+      "frames": 16,
+      "loop": true
+    },
+    "slack": {
+      "first_row": 10,
+      "frames": 24,
+      "loop": true
+    },
+    "stagger": {
+      "first_row": 16,
+      "frames": 12,
+      "loop": false
+    },
+    "swing": {
+      "first_row": 13,
+      "frames": 32,
+      "loop": true
+    }
+  },
+  "cell": [
+    160,
+    160
+  ],
+  "columns": 16,
+  "fps": 24,
+  "pivot": "feet 10 px above the cell bottom, centred (swing: hands at x 80, y 72)",
+  "pixels_per_game_px": 2
+}

@@ -148,24 +148,28 @@ func _draw_meadow() -> void:
 			FastDraw.tri(self, Vector2(x - 1.6, 1), Vector2(x + 1.6, 1), Vector2(x + lean, -hgt), meadow_top)
 			if rng.randf() < 0.03 and not meadow_flowers.is_empty():
 				var fc: Color = meadow_flowers[rng.randi() % meadow_flowers.size()]
-				draw_line(Vector2(x, 0), Vector2(x + lean * 1.3, -hgt - 7), meadow_top, 1.0)
+				FastDraw.line(self, Vector2(x, 0), Vector2(x + lean * 1.3, -hgt - 7), meadow_top, 1.0)
 				FastDraw.circle(self, Vector2(x + lean * 1.3, -hgt - 8), 2.3, fc)
 			lip.append(Vector2(x, 0.5))
 		elif lip.size() > 1:
-			draw_polyline(lip, lip_col, 1.5)
+			_lip(lip, lip_col)
 			lip = PackedVector2Array()
 		x += rng.randf_range(2.0, 4.0)
 	if lip.size() > 1:
-		draw_polyline(lip, lip_col, 1.5)
+		_lip(lip, lip_col)
 
 
 func _rock_strip(pts: PackedVector2Array, cols: PackedColorArray, sx: float, side: float) -> void:
-	var poly := PackedVector2Array(pts)
-	var pc := PackedColorArray(cols)
-	for k in range(pts.size() - 1, -1, -1):
-		poly.append(Vector2(sx - side, pts[k].y))
-		pc.append(cols[k])
-	draw_polygon(poly, pc)
+	# the same outline as before, drawn as one quad per segment (batch-friendly)
+	for k in pts.size() - 1:
+		FastDraw.quad(self, PackedVector2Array([pts[k], pts[k + 1], Vector2(sx - side, pts[k + 1].y), Vector2(sx - side, pts[k].y)]),
+			PackedColorArray([cols[k], cols[k + 1], cols[k + 1], cols[k]]))
+
+
+## The sunlit lip along an exposed top edge (was a polyline), as thin quads.
+func _lip(lip: PackedVector2Array, col: Color) -> void:
+	for k in lip.size() - 1:
+		FastDraw.line(self, lip[k], lip[k + 1], col, 1.5)
 
 ## Older versions added this shape as a normal child, so Ctrl+D copied it and every
 ## duplicate kept a stale extra shape. Remove any unowned leftovers (never your own nodes).

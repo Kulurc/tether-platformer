@@ -55,6 +55,14 @@ var eye_glow := Color(1.0, 0.97, 0.9)
 @export var sprite_faces_right := true           ## which way the art faces when not flipped
 ## Below this horizontal speed counts as standing still (picks "idle" over "run").
 @export var run_anim_threshold := 20.0
+## Height of the art from its feet to the top of the head/hair (game px). The "you" marker,
+## the "..." and speech bubbles sit above this instead of above the collision box. 0 = box.
+@export var art_height := 0.0
+## Where the sprite sits while swinging from a ring. The swing frames are drawn around the
+## hands, so this puts the hands on the cord's end (0 = same as sprite_offset).
+@export var swing_sprite_offset := Vector2.ZERO
+## Optional extra animations, used when the SpriteFrames has them: "rise" (going up after
+## the jump take-off), "land", "slack" (paying out cord), "hook" (throwing the hook).
 
 @export_group("Reel feedback")
 ## px of trembling while this body is planted and reeling (scaled up with cord tension).
@@ -118,6 +126,10 @@ var _time := 0.0
 var reel_effort := 0.0     ## 0..1, set by the tether while this body is reeling on the ground
 var _effort := 0.0         ## smoothed reel_effort
 var _sprite: AnimatedSprite2D
+var _air_time := 0.0        # seconds since leaving the ground (jump -> rise)
+var _land_time := 0.0       # "land" plays this long after touching down
+var _hook_time := 0.0       # "hook" plays this long after hooking a ring
+var _last_anchor: Object = null
 
 
 func _ready() -> void:
@@ -138,6 +150,7 @@ func _ready() -> void:
 	if sprite_frames:
 		_sprite = AnimatedSprite2D.new()
 		_sprite.name = "Sprite"
+		_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS  # art is drawn at 2x: smooth when shrunk
 		_sprite.sprite_frames = sprite_frames
 		add_child(_sprite)
 	gravity = 2.0 * jump_height / (time_to_apex * time_to_apex)
@@ -256,6 +269,14 @@ func pre_step(dt: float) -> void:
 
 
 func post_step(dt: float) -> void:
+	_air_time = 0.0 if is_on_floor() else _air_time + dt
+	_land_time = maxf(0.0, _land_time - dt)
+	_hook_time = maxf(0.0, _hook_time - dt)
+	if tether:
+		var a: Object = tether.anchor if tether.controller == self else null
+		if a != null and a != _last_anchor:
+			_hook_time = 0.5
+		_last_anchor = a
 	if is_on_floor() and not _was_on_floor and _pre_move_vy > 200.0:
 		var k := clampf(_pre_move_vy / 900.0, 0.15, 0.4)
 		_squash = Vector2(1.0 + k, 1.0 - k)
@@ -263,6 +284,8 @@ func post_step(dt: float) -> void:
 		if _pre_move_vy >= land_min_speed:
 			_sfx(land_sound, land_volume_db)
 		_step_dist = step_distance * 0.5  # first step comes a little after landing
+		if _pre_move_vy > 200.0:
+			_land_time = 0.25
 	if is_on_floor() and absf(velocity.x) > 30.0 and not footstep_sounds.is_empty():
 		_step_dist += absf(velocity.x) * dt
 		if _step_dist >= step_distance:
@@ -321,14 +344,14 @@ func _draw() -> void:
 
 func _draw_overlays() -> void:
 	if marker_alpha > 0.01:
-		var top := Vector2(0, -half_h() - 12.0)
+		var top := Vector2(0, top_y() - 10.0)
 		draw_colored_polygon(PackedVector2Array([top + Vector2(-5, -7), top + Vector2(5, -7), top]),
 			Color(1, 1, 1, marker_alpha * 0.85))
 
 	if calling or left_behind:
 		for i in 3:
 			var a := clampf(sin(_time * 4.0 - i * 0.8) * 0.5 + 0.5, 0.2, 1.0)
-			draw_circle(Vector2(-8.0 + i * 8.0, -half_h() - 26.0), 2.0, Color(1, 1, 1, a * 0.6))
+			draw_circle(Vector2(-8.0 + i * 8.0, top_y() - 24.0), 2.0, Color(1, 1, 1, a * 0.6))
 
 
 func _shake_offset() -> Vector2:
@@ -350,13 +373,33 @@ func _anim_name() -> String:
 		return "stagger"
 	if slipping:
 		return "dragged"
+	var mine := tether != null and tether.controller == self and tether.is_active()
+	if _hook_time > 0.0 and _has_anim("hook"):
+		return "hook"
 	if is_grounded():
 		if _effort > 0.05:
 			return "reel"
-		return "run" if absf(velocity.x) > run_anim_threshold else "idle"
+		if absf(velocity.x) > run_anim_threshold:
+			return "run"
+		if _land_time > 0.0 and _has_anim("land"):
+			return "land"
+		if mine and tether.slacking and _has_anim("slack"):
+			return "slack"
+		return "idle"
 	if tether_taut:
 		return "swing"
-	return "jump" if velocity.y < 0.0 else "fall"
+	if velocity.y < 0.0:
+		return "jump" if _air_time < 0.25 or not _has_anim("rise") else "rise"
+	return "fall"
+
+
+func _has_anim(a: String) -> bool:
+	return _sprite != null and sprite_frames != null and sprite_frames.has_animation(a)
+
+
+## Local y of the top of what you see (art if set, else the collision box).
+func top_y() -> float:
+	return minf(-half_h(), half_h() - art_height) if art_height > 0.0 else -half_h()
 
 
 func _update_sprite() -> void:
@@ -366,12 +409,17 @@ func _update_sprite() -> void:
 	var want := _anim_name()
 	if not frames.has_animation(want):
 		want = "idle" if frames.has_animation("idle") else String(frames.get_animation_names()[0])
-	if _sprite.animation != want or not _sprite.is_playing():
+	if _sprite.animation != want:
 		_sprite.play(want)
+	elif not _sprite.is_playing() and frames.get_animation_loop(want):
+		_sprite.play(want)  # one-shot animations (jump, land, hook...) hold their last frame
 	_sprite.flip_h = (facing < 0.0) == sprite_faces_right
 	_sprite.scale = sprite_scale * _squash
 	# squash around the feet, plus the same tremble the placeholder uses
-	_sprite.position = sprite_offset + Vector2(0.0, half_h() * (1.0 - _squash.y)) + _shake_offset()
+	var base := sprite_offset
+	if want == "swing" and swing_sprite_offset != Vector2.ZERO:
+		base = swing_sprite_offset
+	_sprite.position = base + Vector2(0.0, half_h() * (1.0 - _squash.y)) + _shake_offset()
 	var tint := Color.WHITE
 	if left_behind:
 		tint = tint.lerp(Color(0.5, 0.52, 0.58), 0.7)

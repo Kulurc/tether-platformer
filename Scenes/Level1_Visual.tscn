@@ -1,4 +1,4 @@
-[gd_scene load_steps=72 format=4 uid="uid://bb0alyitw8p23"]
+[gd_scene load_steps=73 format=4 uid="uid://bb0alyitw8p23"]
 
 [ext_resource type="Script" uid="uid://46n84pblytya" path="res://Scripts/Level/block.gd" id="1_2llne"]
 [ext_resource type="PackedScene" path="res://Scenes/Prefabs/level_art.tscn" id="1_gvmbf"]
@@ -16,6 +16,7 @@
 [ext_resource type="PackedScene" path="res://Scenes/Prefabs/level_exit.tscn" id="13_6jj8j"]
 [ext_resource type="Shader" uid="uid://cdl8pcjphrc3y" path="res://Shaders/anxiety.gdshader" id="22_q13vw"]
 [ext_resource type="PackedScene" path="res://Scenes/Prefabs/tether_anchor.tscn" id="40_ring"]
+[ext_resource type="AudioStream" uid="uid://xemx7u5hjdqr" path="res://Audio/Music/harp.ogg" id="m1_music"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_k83jr"]
 size = Vector2(40, 1800)
@@ -667,6 +668,9 @@ steps = Array[ExtResource("3_ubfni")]([SubResource("Resource_w3c8k")])
 size = Vector2(32, 400)
 
 [node name="TetherRig" parent="." instance=ExtResource("2_q12u6")]
+level_music = ExtResource("m1_music")
+level_audio_fade = 3.0
+level_music_volume_db = -10.0
 start_black = true
 
 [node name="Ember" parent="TetherRig" index="1"]

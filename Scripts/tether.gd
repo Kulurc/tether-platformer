@@ -67,8 +67,11 @@ signal tugged(body: Character)
 @export var flow_dot_spacing := 22.0
 @export var reel_sound: AudioStream = preload("res://Audio/reel_loop.wav")
 @export var slack_sound: AudioStream = preload("res://Audio/slack_loop.wav")
-@export_range(-60.0, 6.0, 0.5) var reel_volume_db := -18.0
-@export_range(-60.0, 6.0, 0.5) var slack_volume_db := -20.0
+@export_range(-60.0, 6.0, 0.5) var reel_volume_db := -13.0
+@export_range(-60.0, 6.0, 0.5) var slack_volume_db := -15.0
+## Loops while the player holds Sever (Q): rises in pitch and volume until the cord snaps.
+@export var sever_strain_sound: AudioStream = preload("res://Audio/Sfx/sever_strain_loop.wav")
+@export_range(-60.0, 6.0, 0.5) var sever_strain_volume_db := -10.0
 @export var sound_fade_time := 0.2                         ## fade in/out so loops never click on/off
 
 var a: Character
@@ -102,6 +105,7 @@ var tug_stagger := 0.22
 var tug_cooldown := 0.9
 var apart_time := 0.0
 
+var _hook_slack := 0.0      # extra length allowed right after hooking beyond the phase limit; shrinks to 0
 var _strain_timer := 0.0
 var _wedged_timer := 0.0
 var _fail_flash := 0.0
@@ -127,6 +131,7 @@ var _flow_phase := 0.0
 var _fx_time := 0.0
 var _reel_player: AudioStreamPlayer
 var _slack_player: AudioStreamPlayer
+var _strain_player: AudioStreamPlayer
 
 
 func _ready() -> void:
@@ -141,6 +146,7 @@ func setup(body_a: Character, body_b: Character, ctrl: Character) -> void:
 	b.tether = self
 	_reel_player = _make_loop_player(reel_sound)
 	_slack_player = _make_loop_player(slack_sound)
+	_strain_player = _make_loop_player(sever_strain_sound)
 	reset(false)
 
 
@@ -213,6 +219,7 @@ func reset(keep_severed: bool) -> void:
 		severed = false
 	anchor = null
 	length = minf(rest_length, leash_cap)
+	_hook_slack = 0.0
 	tension = 0.0
 	tension_smooth = 0.0
 	strain = 0.0
@@ -341,7 +348,10 @@ func _update_leash(dt: float) -> void:
 		leash_cap = maxf(leash_floor, leash_cap - shrink_speed * dt)
 	if leash_cap > phase_max:
 		leash_cap = move_toward(leash_cap, phase_max, tighten_speed * dt)
-	length = minf(length, leash_cap)
+	if anchor == null:
+		_hook_slack = 0.0
+	_hook_slack = move_toward(_hook_slack, 0.0, tighten_speed * dt)
+	length = minf(length, leash_cap + _hook_slack)
 
 
 func _check_tug(u_a: Vector2, u_b: Vector2, stretch: float) -> void:
@@ -414,7 +424,7 @@ func _handle_verbs(dt: float) -> void:
 			var spd := reel_speed if taut else reel_speed * 2.0
 			length = maxf(min_length, length - spd * dt)
 	elif slacking:
-		length = minf(leash_cap, length + slack_speed * dt)
+		length = minf(maxf(length, leash_cap), length + slack_speed * dt)  # never shortens a fresh hook's extra length
 	_reel_moving = reeling and length < len_before - 0.01
 	_slack_moving = slacking and length > len_before + 0.01
 	_flow_phase += length - len_before
@@ -434,6 +444,22 @@ func _handle_verbs(dt: float) -> void:
 			_snap(&"sever")
 	else:
 		sever_hold = maxf(0.0, sever_hold - dt * 3.0)
+	_drive_strain(dt)
+
+
+## The stretching sound while Sever is held: louder and higher the closer it is to snapping.
+func _drive_strain(dt: float) -> void:
+	if _strain_player == null or _strain_player.stream == null:
+		return
+	var k := clampf(sever_hold / sever_hold_time, 0.0, 1.0)
+	var on := is_active() and sever_hold > 0.0
+	_strain_player.pitch_scale = lerpf(0.85, 1.35, k)
+	var target := lerpf(sever_strain_volume_db - 14.0, sever_strain_volume_db, k) if on else -60.0
+	_strain_player.volume_db = move_toward(_strain_player.volume_db, target, dt * 240.0)
+	if on and not _strain_player.playing:
+		_strain_player.play()
+	elif not on and _strain_player.playing and _strain_player.volume_db <= -59.0:
+		_strain_player.stop()
 
 
 func try_hook() -> bool:
@@ -443,9 +469,9 @@ func try_hook() -> bool:
 		return false
 	var s := a.global_position.distance_to(ring.global_position) \
 		+ ring.global_position.distance_to(b.global_position)
-	if s > leash_cap:
-		_fail_flash = 0.3
-		return false
+	# Always catch, in every phase. If the cord over the ring is longer than the phase allows,
+	# it's let out for now and tightens back to the limit gradually (no yank, no refusal).
+	_hook_slack = maxf(0.0, s - leash_cap)
 	anchor = ring
 	length = s
 	return true
@@ -453,6 +479,7 @@ func try_hook() -> bool:
 
 func release_anchor() -> void:
 	anchor = null
+	_hook_slack = 0.0
 
 
 func _find_anchor() -> TetherAnchor:
@@ -485,6 +512,9 @@ func _snap(reason: StringName) -> void:
 	_rope_free = true
 	_free_seg = maxf(length, _path_length(get_path_points())) / float(segments - 1)
 	_update_anchor_states()
+	if _strain_player:  # the stretch cuts dead the instant it snaps
+		_strain_player.stop()
+		_strain_player.volume_db = -60.0
 	snapped.emit(reason)
 
 

@@ -47,11 +47,20 @@ extends Node2D
 ## a DialogueWait, then a DialogueMusic to bring something new in. Or a DialogueCall
 ## to any node/method. (The rig also emits the `severed` signal at the same moment.)
 @export var on_sever: Array[DialogueStep] = []
+## Camera shake (px) while Sever is held, building up to this just before the snap.
+## It stops the moment the cord snaps. 0 = no shake.
+@export_range(0.0, 20.0, 0.5) var sever_hold_shake := 4.0
+## Seconds the player must hold Sever (Q) before the cord snaps. The stretch sound, the
+## camera shake and the ring around the body all build up over this time.
+@export_range(0.2, 10.0, 0.1, "or_greater") var time_to_sever := 2.5
+## Cut the level music dead the moment the cord snaps (leaves silence after the TACK).
+@export var stop_music_on_sever := false
 
 @export_group("Audio")
-## Music / ambience that start when this level loads. Leave empty to keep whatever is
-## already playing (e.g. carried over from the previous level) - or to start it later
-## with a DialogueMusic step in a DialogueTrigger.
+## Music / ambience for this level. They wait until the level is actually visible: a level
+## that starts on a black screen (intro dialogue) stays silent until the black has faded
+## away, then the music fades in over level_audio_fade. They fade out when the level is
+## left through go_to_scene (a LevelExit). Leave empty for none.
 @export var level_music: AudioStream
 @export var level_ambience: AudioStream
 @export_range(0.0, 10.0, 0.1) var level_audio_fade := 2.0
@@ -145,6 +154,8 @@ var _pulse_time := 0.0
 var _input_lock := 0.0
 var _fall_limit_y := 0.0
 var _last_fall_msg := -1
+var _phase_loop: AudioStreamPlayer
+var _music_pending := false  # level music waits for the level to be visible
 
 
 func _ready() -> void:
@@ -189,12 +200,16 @@ func _ready() -> void:
 	set_phase(1)
 	_update_camera(1.0, true)
 	camera.make_current()
-	var sm := _sm()
-	if sm:
-		if level_music:
-			sm.play_music_fade(level_music, level_audio_fade, level_music_volume_db)
-		if level_ambience:
-			sm.play_ambience_fade(level_ambience, level_audio_fade, level_ambience_volume_db)
+	tether.sever_hold_time = time_to_sever
+	var psm := _sm()
+	if psm:  # web: decode this level's music now, while the screen is still black
+		psm.prepare(level_music)
+		psm.prepare(level_ambience)
+		for pr in phase_profiles:
+			if pr:
+				psm.prepare(pr.loop_sound)
+	_music_pending = level_music != null or level_ambience != null
+	_try_start_music()
 
 
 func _physics_process(dt: float) -> void:
@@ -206,6 +221,8 @@ func _physics_process(dt: float) -> void:
 		return
 	if _ended:
 		return
+	if _music_pending:
+		_try_start_music()
 	if debug_tools:
 		_debug_keys()
 	var locked := _input_lock > 0.0 or blackout.is_covering()
@@ -253,6 +270,9 @@ func _physics_process(dt: float) -> void:
 	tether.post_step(dt)
 	wisp.post_step(dt)
 	ember.post_step(dt)
+	if tether.is_active() and tether.sever_hold > 0.0 and sever_hold_shake > 0.0:
+		var k := clampf(tether.sever_hold / tether.sever_hold_time, 0.0, 1.0)
+		_shake = maxf(_shake, sever_hold_shake * pow(k, 1.3) + 0.5)
 
 	_check_zones(dt)
 	if controlled.global_position.y > _fall_limit_y:
@@ -299,6 +319,32 @@ func set_phase(p: int) -> void:
 		hud.show_title(profile.title, profile.subtitle, profile.title_font, profile.subtitle_font)
 	if p > 1:
 		_sfx(phase_sound, phase_volume_db)
+	_start_phase_loop(profile)
+
+
+## The phase's own looping sound (phase III's heartbeat). Fades in; the previous phase's
+## loop fades out. Cut dead when the cord is severed.
+func _start_phase_loop(pr: PhaseProfile) -> void:
+	_stop_phase_loop(2.0)
+	var sm := _sm()
+	if sm == null or pr.loop_sound == null or tether.severed:
+		return
+	_phase_loop = sm.make_loop(pr.loop_sound, self, -60.0)
+	_phase_loop.play()
+	create_tween().tween_property(_phase_loop, "volume_db", pr.loop_volume_db, maxf(pr.loop_fade_in, 0.01))
+
+
+func _stop_phase_loop(fade: float) -> void:
+	if _phase_loop == null:
+		return
+	var p := _phase_loop
+	_phase_loop = null
+	if fade <= 0.0:
+		p.queue_free()
+		return
+	var tw := create_tween()
+	tw.tween_property(p, "volume_db", -60.0, fade)
+	tw.tween_callback(p.queue_free)
 
 
 # ---------------------------------------------------------------- helpers for DialogueCall
@@ -373,6 +419,12 @@ func go_to_scene(scene: String, fade: float = 1.0) -> void:
 	_leaving = true
 	_busy = true            # no deaths, restarts or swaps on the way out
 	lock_input(1.0e6)
+	_music_pending = false
+	var sm := _sm()
+	if sm:
+		sm.stop_music(fade)
+		sm.stop_ambience(fade)
+	_stop_phase_loop(fade)
 	Blackout.carry_in = maxf(fade, 0.05)
 	await blackout.fade_to(1.0, fade)
 	var cover := get_node_or_null("/root/ScreenFade")
@@ -525,6 +577,14 @@ func _on_tether_snapped(reason: StringName) -> void:
 	if reason == &"strain":
 		_die("The tether gave way.")
 		return
+	_stop_phase_loop(0.0)  # the phase loop stops dead with the snap
+	if stop_music_on_sever:
+		_music_pending = false
+		var smm := _sm()
+		if smm:
+			smm.stop_music(0.0)
+			smm.stop_ambience(0.0)
+	_shake = 0.0           # the build-up shake ends with it
 	var sm := _sm()
 	if sm and sever_sound:
 		sm.play_sound_exact(sever_sound, sever_volume_db)
@@ -541,6 +601,20 @@ func _run_on_sever() -> void:
 
 func _sm() -> Node:
 	return get_node_or_null("/root/SoundManager")
+
+
+## Start the level's music once nothing covers the screen any more (after an intro's black).
+func _try_start_music() -> void:
+	if blackout.alpha > 0.01 or _leaving:
+		return
+	_music_pending = false
+	var sm := _sm()
+	if sm == null:
+		return
+	if level_music:
+		sm.play_music_fade(level_music, level_audio_fade, level_music_volume_db)
+	if level_ambience:
+		sm.play_ambience_fade(level_ambience, level_audio_fade, level_ambience_volume_db)
 
 
 ## One-shot sound effect through the SoundManager (nothing happens if `s` is empty).
