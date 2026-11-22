@@ -1,6 +1,6 @@
 extends Control
 ## Credits: black screen, the first line fades in and out, a pause on black, then the second
-## line fades in and stays. A click / key / button / tap then returns to the main menu while the
+## line fades in and stays. A left mouse click then returns to the main menu while the
 ## audio keeps playing (after the ending the menu uses the same track, so it carries on).
 ## Reaching the credits marks the game as finished (GameProgress): from then on the main menu
 ## shows the dead tree and plays the dusk ambience.
@@ -61,11 +61,9 @@ func _run() -> void:
 func _unhandled_input(e: InputEvent) -> void:
 	if not _can_continue or _leaving:
 		return
-	var go: bool = (e is InputEventMouseButton and e.pressed) \
-		or (e is InputEventKey and e.pressed and not e.echo) \
-		or (e is InputEventJoypadButton and e.pressed) \
-		or (e is InputEventScreenTouch and e.pressed)
-	if go:
+	# Only a left mouse click counts: keys (volume, media keys...), other buttons and the wheel are ignored.
+	var mb := e as InputEventMouseButton
+	if mb and mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT:
 		get_viewport().set_input_as_handled()
 		back_to_menu()
 

@@ -338,11 +338,11 @@ Everything is a node you can move in the editor - nothing is placed by code.
   MainMenu -> `camera_drift`, `camera_drift_period`. Tree and hill-grass sway are done on the GPU
   (`Shaders/sway.gdshader`), so they cost almost nothing. Any level can use the same settings.
 - **MainMenu root**: `first_scene` (where "click to start" goes), fade in/out times, the prompt's pulse, and optional
-  `menu_music` / `start_sound`. A click, key, controller button or tap starts the game.
+  `menu_music` / `start_sound`. Only a left mouse click starts the game (keys, other mouse buttons and the wheel are ignored).
 
 ### Credits (`Scenes/Credits.tscn`, after Level3's exit)
-Black screen; `FirstLine` fades in, holds, fades out; a pause on black; `SecondLine` fades in and stays. A click,
-key, button or tap then goes back to the main menu. Both lines are Labels you can move and restyle in the editor.
+Black screen; `FirstLine` fades in, holds, fades out; a pause on black; `SecondLine` fades in and stays. A left mouse
+click then goes back to the main menu. Both lines are Labels you can move and restyle in the editor.
 On the root: `menu_scene`, `music` (+ volume and fade in) and the **Timing** group (`start_delay`, `first_fade_in`,
 `first_hold`, `first_fade_out`, `black_gap`, `second_fade_in`, `leave_fade`). Level3_Visual's LevelExit has
 `next_scene = "Credits"`.

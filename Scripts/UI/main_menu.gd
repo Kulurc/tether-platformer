@@ -1,5 +1,5 @@
 extends Node2D
-## Main menu. A click, key press or controller button starts the game.
+## Main menu. A left mouse click starts the game (nothing else does).
 ## Everything you see is a node in this scene, so lay it out in the editor:
 ##   UI/Root/Title, UI/Root/Subtitle, UI/Root/ClickToStart  - the text (drag them, or set anchors/offsets)
 ##   LevelArt (sky, hills, light), Hill, Tree                 - the backdrop
@@ -81,11 +81,9 @@ func _process(dt: float) -> void:
 func _unhandled_input(e: InputEvent) -> void:
 	if _starting:
 		return
-	var go: bool = (e is InputEventMouseButton and e.pressed) \
-		or (e is InputEventKey and e.pressed and not e.echo) \
-		or (e is InputEventJoypadButton and e.pressed) \
-		or (e is InputEventScreenTouch and e.pressed)
-	if go:
+	# Only a left mouse click counts: keys (volume, media keys...), other buttons and the wheel are ignored.
+	var mb := e as InputEventMouseButton
+	if mb and mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT:
 		get_viewport().set_input_as_handled()
 		start_game()
 

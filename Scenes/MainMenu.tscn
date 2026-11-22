@@ -14,7 +14,7 @@ script = ExtResource("1_menu")
 menu_music = ExtResource("9_music")
 menu_music_volume_db = 0.0
 after_ending_music = ExtResource("10_dusk")
-after_ending_music_volume_db = 0.0
+after_ending_music_volume_db = -10.0
 
 [node name="LevelArt" parent="." instance=ExtResource("2_art")]
 sky_top = Color(0.227, 0.153, 0.329, 1)

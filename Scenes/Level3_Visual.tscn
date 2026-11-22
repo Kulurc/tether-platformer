@@ -532,9 +532,9 @@ look = 1
 
 [node name="I_Ground50" type="StaticBody2D" parent="Level"]
 texture_filter = 4
-position = Vector2(5075, -393)
+position = Vector2(5056, -386)
 script = ExtResource("3_l45m1")
-size = Vector2(135, 752)
+size = Vector2(192, 752)
 color = Color(0.5568628, 0.8666667, 0.15686275, 1)
 look = 1
 
@@ -582,7 +582,7 @@ look = 1
 texture_filter = 4
 position = Vector2(5864, -291)
 script = ExtResource("3_l45m1")
-size = Vector2(135, 752)
+size = Vector2(112, 752)
 color = Color(0.5568628, 0.8666667, 0.15686275, 1)
 look = 1
 
@@ -652,7 +652,7 @@ look = 1
 
 [node name="I_Ground65" type="StaticBody2D" parent="Level"]
 texture_filter = 4
-position = Vector2(6619, -189)
+position = Vector2(6644, -187)
 script = ExtResource("3_l45m1")
 size = Vector2(135, 752)
 color = Color(0.5568628, 0.8666667, 0.15686275, 1)
