@@ -37,6 +37,14 @@ extends Node2D
 ## Optional sound when the player starts.
 @export var start_sound: AudioStream
 @export_range(-40.0, 12.0, 0.5) var start_volume_db := -6.0
+## Browsers block all sound until the player clicks the page. So in web builds, the first time the
+## menu opens it shows this screen (UI/AudioGate - edit its text in the scene); the first left click
+## unlocks audio, then the menu fades in with its music. Desktop builds never show it.
+@export var web_audio_gate: NodePath = ^"UI/AudioGate"
+@export_range(0.0, 3.0, 0.1) var web_audio_gate_fade := 0.6
+
+## True once the browser has allowed audio (stays true for the rest of the session).
+static var _audio_unlocked := false
 
 @onready var _prompt: CanvasItem = get_node_or_null("UI/Root/ClickToStart")
 @onready var _fade: ColorRect = get_node_or_null("UI/Fade")
@@ -44,6 +52,7 @@ extends Node2D
 @onready var _cam_home: Vector2 = _cam.position if _cam else Vector2.ZERO
 
 var _starting := false
+var _gated := false
 var _t := 0.0
 
 
@@ -51,6 +60,20 @@ func _ready() -> void:
 	var cover := get_node_or_null("/root/ScreenFade")
 	if cover and cover.is_holding():
 		cover.release_after(2)
+	var gate := get_node_or_null(web_audio_gate) as CanvasItem
+	if OS.has_feature("web") and not _audio_unlocked and gate:
+		_gated = true  # wait for the first click before fading in and starting the music
+		gate.visible = true
+		if _fade:
+			_fade.color.a = 1.0
+		return
+	if gate:
+		gate.visible = false
+	_open()
+
+
+## Fade the menu in and start its music.
+func _open() -> void:
 	if _fade:
 		_fade.color.a = 1.0 if fade_in_time > 0.0 else 0.0
 		create_tween().tween_property(_fade, "color:a", 0.0, maxf(fade_in_time, 0.01))
@@ -85,7 +108,22 @@ func _unhandled_input(e: InputEvent) -> void:
 	var mb := e as InputEventMouseButton
 	if mb and mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT:
 		get_viewport().set_input_as_handled()
-		start_game()
+		if _gated:
+			_unlock()
+		else:
+			start_game()
+
+
+## First click in a browser: audio is now allowed. Fade the gate away and open the menu.
+func _unlock() -> void:
+	_gated = false
+	_audio_unlocked = true
+	var gate := get_node_or_null(web_audio_gate) as CanvasItem
+	if gate:
+		var tw := create_tween()
+		tw.tween_property(gate, "modulate:a", 0.0, maxf(web_audio_gate_fade, 0.01))
+		tw.tween_callback(func(): gate.visible = false)
+	_open()
 
 
 ## Fade out and load first_scene (also callable from other scripts).

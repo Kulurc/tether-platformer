@@ -9,7 +9,7 @@
 [ext_resource type="Script" uid="uid://da1htlafyv1tn" path="res://Scripts/character.gd" id="7_rr63j"]
 [ext_resource type="Shader" uid="uid://cdl8pcjphrc3y" path="res://Shaders/anxiety.gdshader" id="8_jmdfj"]
 [ext_resource type="Script" uid="uid://shkm74xawx8w" path="res://Scripts/hud.gd" id="9_eamnh"]
-[ext_resource type="Script" path="res://Scripts/pause_menu.gd" id="10_41i60"]
+[ext_resource type="PackedScene" path="res://Scenes/Prefabs/pause_menu.tscn" id="14_pause"]
 [ext_resource type="Script" uid="uid://dk8a3xqts8voe" path="res://Scripts/blackout.gd" id="11_blackout"]
 [ext_resource type="FontFile" uid="uid://eac8lqlrsbbs" path="res://Fonts/DM_Serif_Display/DMSerifDisplay-Regular.ttf" id="11_wusbm"]
 [ext_resource type="SpriteFrames" path="res://Art/Characters/wisp_frames.tres" id="12_wispf"]
@@ -163,5 +163,4 @@ theme_override_constants/outline_size = 4
 theme_override_font_sizes/font_size = 14
 text = "FPS: 60"
 
-[node name="PauseMenu" type="CanvasLayer" parent="."]
-script = ExtResource("10_41i60")
+[node name="PauseMenu" parent="." instance=ExtResource("14_pause")]

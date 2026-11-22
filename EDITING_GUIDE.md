@@ -337,8 +337,18 @@ Everything is a node you can move in the editor - nothing is placed by code.
   `sun_breathe`, `ray_drift`) and `dust_count`/`dust_speed`; Tree -> `sway`, `sway_speed`; Hill -> `grass_sway`;
   MainMenu -> `camera_drift`, `camera_drift_period`. Tree and hill-grass sway are done on the GPU
   (`Shaders/sway.gdshader`), so they cost almost nothing. Any level can use the same settings.
+- **Web "click to begin" screen** (`UI/AudioGate`, hidden in the editor): browsers block sound until the first
+  click, so web builds open on this screen once per session; its click unlocks audio, then the menu fades in with
+  its music. Desktop builds skip it. Edit its text/colour like any Label.
 - **MainMenu root**: `first_scene` (where "click to start" goes), fade in/out times, the prompt's pulse, and optional
   `menu_music` / `start_sound`. Only a left mouse click starts the game (keys, other mouse buttons and the wheel are ignored).
+
+### Pause menu (`Scenes/Prefabs/pause_menu.tscn`, Esc / Start)
+Part of every level's TetherRig. Every element is a node in that scene; `Root` is hidden in the editor, so tick its
+eye to see and edit the layout. Volume rows are the HBoxContainers named after an audio bus (`Master`, `Music`,
+`Sfx`), each with a `Slider` and a `Percent` label (add a row for a new bus the same way). **Resume** closes it;
+**Main Menu** fades out (with the level's music) and loads the menu set on the PauseMenu root (`menu_scene`,
+`menu_fade`). The menu stays the first-visit one (leafy tree + Harp) unless the game was finished before.
 
 ### Credits (`Scenes/Credits.tscn`, after Level3's exit)
 Black screen; `FirstLine` fades in, holds, fades out; a pause on black; `SecondLine` fades in and stays. A left mouse
